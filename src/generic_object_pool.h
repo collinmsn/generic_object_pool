@@ -1,5 +1,5 @@
-#ifndef _OBJECT_POOL_H_
-#define _OBJECT_POOL_H_
+#ifndef _CFOOD_GENERIC_OBJECT_POOL_H_
+#define _CFOOD_GENERIC_OBJECT_POOL_H_
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/thread/mutex.hpp>
@@ -8,91 +8,86 @@
 #include <boost/type_traits.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
-#include "pool_object.h"
-#include "object_factory.h"
-#ifdef UNIT_TEST
-#include <gflags/glfags.h>
-DEFINE_int32(num_obj_directly_freed, 0, "number of objects that being directly freed because object pool has gone away");
-#endif
+#include "poolable_object.h"
+#include "poolable_object_factory.h"
 
-// Note: ObjType must be derived from PoolObject
-template<typename ObjType>
-class ObjectPool : public boost::enable_shared_from_this<ObjectPool<ObjType> > {
-  friend class Deleter;
-private:
-  class Deleter {
- public:
-    Deleter (boost::weak_ptr<ObjectPool<ObjType> > pool) : pool_(pool) {
-    }
-    void operator()(ObjType* obj) {
-      if (!obj) return;
-      boost::shared_ptr<ObjectPool<ObjType> > pool = pool_.lock();
-      if (!pool) {
-        LOG(WARNING) << "object pool has gone away";
-        delete obj;
-        #ifdef UNIT_TEST
-        ++FLAGS_num_obj_directly_freed;
-        #endif
+namespace cfood {
+
+  template<typename PoolableObject>
+    class GenericObjectPool : public boost::enable_shared_from_this<GenericObjectPool<PoolableObject> > {
+  public:
+    typedef PoolableObject ObjType;
+    typedef GenericObjectPool<ObjType> PoolType;
+    typedef PoolableObjectFactory<ObjType> FactoryType;
+  private:
+    friend class Deleter;
+    class Deleter {
+    public:
+      Deleter (boost::shared_ptr<PoolType> pool) : pool_(pool) {
       }
-      else {
-        pool->return_object(obj);
+      void operator()(ObjType* obj) {
+	pool_->return_object(obj);
+      }
+    private:
+      boost::shared_ptr<PoolType> pool_;
+    };
+  public:
+  GenericObjectPool(boost::shared_ptr<FactoryType> factory, const size_t max_active, const size_t max_idle)
+    : factory_(factory), max_active_(max_active), max_idle_(max_idle), active_obj_num_(0) {
+      BOOST_STATIC_ASSERT_MSG((boost::is_base_of<PoolObject, ObjType>::value), 
+			      "Object type must be derived class of PoolObject");
+      if (!factory_) {
+	factory_.reset(new FactoryType());
       }
     }
- private:
-    boost::weak_ptr<ObjectPool<ObjType> > pool_;
-  };
-public:
-ObjectPool(const size_t max_obj_num, boost::shared_ptr<ObjectFactory> factory = boost::shared_ptr<ObjectFactory>()) : max_obj_num_(max_obj_num), obj_num_(0), factory_(factory) {
-    BOOST_STATIC_ASSERT_MSG((boost::is_base_of<PoolObject, ObjType>::value), "ObjType must be derived class of PoolObject");
-    if (!factory_) {
-      factory_ = boost::shared_ptr<ObjectFactory>(new DefaultObjectFactory<ObjType>());
+    ~GenericObjectPool() {
+      for (size_t i = 0; i < objects_.size(); ++i) {
+	factory_->destroy_object(objects_[i]);
+      }
     }
-  }
-  ~ObjectPool() {
-    for (size_t i = 0; i < objects_.size(); ++i) {
-      delete objects_[i];
-    }
-  }
-  boost::shared_ptr<ObjType> get_object() {
-    boost::shared_ptr<ObjectPool<ObjType> > self_shared_ptr(this->shared_from_this());
-    boost::weak_ptr<ObjectPool<ObjType> > self(self_shared_ptr);
-    boost::mutex::scoped_lock lock(mutex_);
-    if (!objects_.empty()) {
-      ObjType* obj = objects_.back();
-      objects_.pop_back();
+    boost::shared_ptr<ObjType> get_object() {
+      boost::shared_ptr<PoolType> self(this->shared_from_this());
+      boost::lock_guard<boost::mutex> lock(mutex_);
+      if (!objects_.empty()) {
+	ObjType* obj = objects_.back();
+	objects_.pop_back();
+	return boost::shared_ptr<ObjType>(obj, Deleter(self));
+      }
+      if (active_obj_num_ >= max_active_) {
+	return boost::shared_ptr<ObjType>();
+      }
+      ObjType* obj = factory_->create_object();
+      if (!obj) {
+	return boost::shared_ptr<ObjType>();
+      }
+
+      ++active_obj_num_;
       return boost::shared_ptr<ObjType>(obj, Deleter(self));
     }
-    if (obj_num_ >= max_obj_num_) {
-      return boost::shared_ptr<ObjType>();
+    
+    size_t active_object() const {
+      return active_obj_num_;
     }
-    ObjType* obj = dynamic_cast<ObjType*>(factory_->create_object());
-    if (!obj) return boost::shared_ptr<ObjType>();
-    ++obj_num_;
-    return boost::shared_ptr<ObjType>(obj, Deleter(self));
-  }
+  private:
+    void return_object(ObjType* obj) {
+      if (!obj) return;
 
-  size_t size() const {
-    return obj_num_;
-  }
-
- private:
-  void return_object(ObjType* obj) {
-    if (!obj) return;
-
-    boost::mutex::scoped_lock lock(mutex_);
-    if (!obj->reusable()) {
-      delete obj;
-      --obj_num_;
-    }
-    else {
+      boost::lock_guard<boost::mutex> lock(mutex_);
+      if (!obj->reusable() || objects_.size() >= max_idle_) {
+	factory_->destroy_object(obj);
+	--active_obj_num_;
+	return;
+      }
       objects_.push_back(obj);
     }
+  private:
+    const size_t max_active_;
+    const size_t max_idle_;
+    size_t active_obj_num_;
+    boost::shared_ptr<FactoryType> factory_;
+    std::vector<ObjType*> objects_;
+    boost::mutex mutex_;
+  };
+
   }
-private:
-  const size_t max_obj_num_;
-  size_t obj_num_;
-  boost::shared_ptr<ObjectFactory> factory_;
-  std::vector<ObjType*> objects_;
-  boost::mutex mutex_;
-};
 #endif

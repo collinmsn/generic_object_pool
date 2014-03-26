@@ -1,19 +1,15 @@
-#ifndef _OBJECT_FACTORY_H_
-#define _OBJECT_FACTORY_H_
+#ifndef _CFOOD_POOLABLE_OBJECT_FACTORY_H_
+#define _CFOOD_POOLABLE_OBJECT_FACTORY_H_
 
-class PoolObject;
+namespace cfood {
+
+template<typename PoolableObject>
 class ObjectFactory {
 public:
-  virtual ~ObjectFactory() {
-  }
-  virtual PoolObject* create_object() = 0;
-};
-
-template<typename ObjType>
-class DefaultObjectFactory : public ObjectFactory {
-  virtual PoolObject* create_object() {
-    return new ObjType();
+  PoolableObject* create_object() {
+    return new PoolableObject();
   }
 };
 
+}
 #endif

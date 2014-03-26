@@ -1,11 +1,13 @@
-#ifndef _POOL_OBJECT_H_
-#define _POOL_OBJECT_H_
+#ifndef _CFOOD_POOLABLE_OBJECT_H_
+#define _CFOOD_POOLABLE_OBJECT_H_
 
-class PoolObject {
+namespace cfood {
+template <typename T>
+class PoolableObject {
 public:
-PoolObject() : reusable_(true) {
+PoolableObject() : reusable_(true) {
   }
-  virtual ~PoolObject() {
+  virtual ~PoolableObject() {
   }
   void set_reusable(bool reusable) {
     reusable_ = reusable;
@@ -16,5 +18,6 @@ PoolObject() : reusable_(true) {
 private:
   bool reusable_;
 };
+}
 
 #endif
