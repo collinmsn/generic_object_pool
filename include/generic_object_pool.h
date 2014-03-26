@@ -1,8 +1,8 @@
 #ifndef _CFOOD_GENERIC_OBJECT_POOL_H_
 #define _CFOOD_GENERIC_OBJECT_POOL_H_
 #include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/lock_guard.hpp>
 #include <glog/logging.h>
 #include <boost/static_assert.hpp>
 #include <boost/type_traits.hpp>
@@ -13,10 +13,10 @@
 
 namespace cfood {
 
-  template<typename PoolableObject>
-    class GenericObjectPool : public boost::enable_shared_from_this<GenericObjectPool<PoolableObject> > {
+  template<typename T>
+    class GenericObjectPool : public boost::enable_shared_from_this<GenericObjectPool<T> > {
   public:
-    typedef PoolableObject ObjType;
+    typedef T ObjType;
     typedef GenericObjectPool<ObjType> PoolType;
     typedef PoolableObjectFactory<ObjType> FactoryType;
   private:
@@ -34,7 +34,7 @@ namespace cfood {
   public:
   GenericObjectPool(boost::shared_ptr<FactoryType> factory, const size_t max_active, const size_t max_idle)
     : factory_(factory), max_active_(max_active), max_idle_(max_idle), active_obj_num_(0) {
-      BOOST_STATIC_ASSERT_MSG((boost::is_base_of<PoolObject, ObjType>::value), 
+      BOOST_STATIC_ASSERT_MSG((boost::is_base_of<PoolableObject<ObjType>, ObjType>::value), 
 			      "Object type must be derived class of PoolObject");
       if (!factory_) {
 	factory_.reset(new FactoryType());

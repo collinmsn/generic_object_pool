@@ -4,10 +4,13 @@
 namespace cfood {
 
 template<typename PoolableObject>
-class ObjectFactory {
+class PoolableObjectFactory {
 public:
   PoolableObject* create_object() {
     return new PoolableObject();
+  }
+  void destroy_object(PoolableObject* obj) {
+    delete obj;
   }
 };
 

@@ -21,7 +21,16 @@ SET(CXX_FLAGS
  )
 
 STRING(REPLACE ";" " " CMAKE_CXX_FLAGS "${CXX_FLAGS}")
-enable_testing()
-add_subdirectory("./example") 
+
+include_directories("../include")
+
+file(GLOB srcs1 "./*1.cc")
+file(GLOB srcs2 "./*2.cc")
+
+add_executable(example1 ${srcs1})
+target_link_libraries(example1 glog boost_system)
+add_executable(example2 ${srcs2})
+target_link_libraries(example2 glog boost_system)
+
 
  
