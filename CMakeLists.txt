@@ -24,4 +24,5 @@ STRING(REPLACE ";" " " CMAKE_CXX_FLAGS "${CXX_FLAGS}")
 enable_testing()
 add_subdirectory("./example") 
 
+install(DIRECTORY include/ DESTINATION include FILES_MATCHING PATTERN "*.h")
  
