@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-project (object_pool)
+project (generic_object_pool)
  
 SET(CXX_FLAGS
  -g
