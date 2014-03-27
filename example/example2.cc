@@ -46,12 +46,13 @@ int main(int argc, const char** argv) {
   size_t buf_size = 128;
   boost::shared_ptr<FactoryType> factory(new FactoryType(buf_size));
   boost::shared_ptr<PoolType> pool(new PoolType(factory, max_active, max_idle));
-  boost::shared_ptr<ObjFromFactory> obj;
   for (int i = 0; i < 40; ++i) {
     // some other code
     {
-      obj = pool->get_object();
-      obj->foo();
+      boost::shared_ptr<ObjFromFactory> obj = pool->get_object(); 
+      obj->foo(); 
+      // if some error occur  
+      // obj->set_reusable(false); 
     }
   }
   return 0;

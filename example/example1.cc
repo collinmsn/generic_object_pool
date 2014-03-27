@@ -18,12 +18,13 @@ int main(int argc, const char** argv) {
   size_t max_active = 10;
   size_t max_idle = 5;
   boost::shared_ptr<PoolType> pool(new PoolType(boost::shared_ptr<FactoryType>(), max_active, max_idle));
-  boost::shared_ptr<SomeObject> obj;
   for (int i = 0; i < 40; ++i) {
     // some other code
     {
-      obj = pool->get_object();
+      boost::shared_ptr<SomeObject> obj = pool->get_object();
       obj->foo();
+      // if some error occur
+      // obj->set_reusable(false);
     }
   }
   return 0;
