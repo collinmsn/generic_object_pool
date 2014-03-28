@@ -50,4 +50,13 @@ namespace cfood {
     void destroy_object(ObjFromFactory* obj) {                                                                                                                                                                                           
     }    
 };
+
 }
+
+然后这样使用
+typedef cfood::PoolableObjectFactory<ObjFromFactory> FactoryType;
+typedef cfood::GenericObjectPool<SomeObject> PoolType;
+boost::shared_ptr<FactoryType> factory(new FactoryType(128));
+const size_t max_idle = 10;
+boost::shared_ptr<PoolType> pool(new PoolType(factory, max_idle));
+pool->get_object();
