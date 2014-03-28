@@ -6,8 +6,7 @@ A generic object pool for c++ which is easy to use and high performance
 
 GenericObjectPool是一个简单易用的对象池，你可以使用它轻松地pool那些创建和销毁成本比较高的对象。和java的对象池不一样，得益于c++的RAII特性，你不需要在borrow_object后还要去处理return_object，你只需要简单地从pool中去get_object就可以了，object在你使用完后会自动return到pool中。如果在使用中发生异常而使得这个object不能再重复使用, set_reusable(false)就行了，这样pool会自动销毁它。
 
-Pool中的对象都是PoolableObject，也就是说你放到pool中的对象需要继承自PoolableObject。某些情况下，
-你还需要提供相应的factory。
+Pool中的对象都是PoolableObject，也就是说你放到pool中的对象需要继承自PoolableObject。某些情况下，你还需要提供相应的factory。
 
 Getting started:
 
@@ -35,3 +34,20 @@ boost::shared_ptr<PoolType> pool(new PoolType());
 
 
 
+你可能需要设置这个pool中最多保留多少idle object, GenericObjectPool的max_idle就是控制它的，默认这个参数是-1，表示没有限制。如果你还想控制同时存在的object数，那max_active就是干这个的。
+
+PoolableObjectFactory用来创建和销毁池中的对象，它没有提供虚函数供override，你需要使用模板特化来处理特定对象的创建和销毁方式，例如
+
+namespace cfood {                                                                                                                 
+  template <>          
+  class PoolableObjectFactory<ObjFromFactory> {             
+  public:                                                                                                           
+    PoolableObjectFactory() {}                                                                                      
+    PoolableObjectFactory(const size_t buf_size) {                                                              
+    }                                                                                                                                 
+    ObjFromFactory* create_object() {                                                                                                                                                                                                    
+    }                                                                                                                                 
+    void destroy_object(ObjFromFactory* obj) {                                                                                                                                                                                           
+    }    
+};
+}
