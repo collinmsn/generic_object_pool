@@ -12,16 +12,19 @@ Getting started:
 
 首先定义你想pool的object
 
+```cpp
 class SomeObject : public cfood::PoolableObject<SomeObject> {
 };
-
+```
 然后你构造一个object pool
 
+```cpp
 typedef cfood::GenericObjectPool<SomeObject> PoolType;
 boost::shared_ptr<PoolType> pool(new PoolType());
-
+```
 然后你就可以在程序的各个地方各个线程中使用pool取得object，没错，GenericObjectPool是线程安全的。
 
+```cpp
 {
       boost::shared_ptr<SomeObject> obj = pool->get_object(); 
       try {
@@ -31,13 +34,13 @@ boost::shared_ptr<PoolType> pool(new PoolType());
         obj->set_reusable(false);
       }
 }
-
-
+```
 
 你可能需要设置这个pool中最多保留多少idle object, GenericObjectPool的max_idle就是控制它的，默认这个参数是-1，表示没有限制。如果你还想控制同时存在的object数，那max_active就是干这个的。
 
 PoolableObjectFactory用来创建和销毁池中的对象，它没有提供虚函数供override，你需要使用模板特化来处理特定对象的创建和销毁方式，例如
 
+```cpp
 namespace cfood {                                                                                                                 
   template <>          
   class PoolableObjectFactory<ObjFromFactory> {             
@@ -52,11 +55,14 @@ namespace cfood {
 };
 
 }
+```
 
 然后这样使用
+```cpp
 typedef cfood::PoolableObjectFactory<ObjFromFactory> FactoryType;
 typedef cfood::GenericObjectPool<SomeObject> PoolType;
 boost::shared_ptr<FactoryType> factory(new FactoryType(128));
 const size_t max_idle = 10;
 boost::shared_ptr<PoolType> pool(new PoolType(factory, max_idle));
 pool->get_object();
+```
