@@ -1,4 +1,4 @@
-#include "generic_object_pool.h"
+#include "cfood/generic_object_pool.h"
 
 class ObjFromFactory : public cfood::PoolableObject<ObjFromFactory> {
 public:
@@ -41,11 +41,11 @@ namespace cfood {
 int main(int argc, const char** argv) {
   typedef cfood::GenericObjectPool<ObjFromFactory> PoolType;
   typedef cfood::PoolableObjectFactory<ObjFromFactory> FactoryType;
-  size_t max_active = 10;
   size_t max_idle = 5;
+  size_t max_active = 10;
   size_t buf_size = 128;
   boost::shared_ptr<FactoryType> factory(new FactoryType(buf_size));
-  boost::shared_ptr<PoolType> pool(new PoolType(factory, max_active, max_idle));
+  boost::shared_ptr<PoolType> pool(new PoolType(factory, max_idle, max_active));
   for (int i = 0; i < 40; ++i) {
     // some other code
     {
