@@ -19,6 +19,7 @@ namespace cfood {
     typedef T ObjType;
     typedef GenericObjectPool<ObjType> PoolType;
     typedef PoolableObjectFactory<ObjType> FactoryType;
+    typedef std::list<ObjType*> ObjContainer;
   private:
     friend class Deleter;
     class Deleter {
@@ -41,16 +42,16 @@ namespace cfood {
       }
     }
     ~GenericObjectPool() {
-      for (size_t i = 0; i < objects_.size(); ++i) {
-	factory_->destroy_object(objects_[i]);
+      for (ObjContainer::iterator it = objects_.begin(); it != objects_.end(); ++it) {
+	factory_->destroy_object(*it);
       }
     }
     boost::shared_ptr<ObjType> get_object() {
       boost::shared_ptr<PoolType> self(this->shared_from_this());
       boost::lock_guard<boost::mutex> lock(mutex_);
       if (!objects_.empty()) {
-	ObjType* obj = objects_.back();
-	objects_.pop_back();
+	ObjType* obj = objects_.front();
+	objects_.pop_front();
 	return boost::shared_ptr<ObjType>(obj, Deleter(self));
       }
       if (active_obj_num_ >= max_active_) {
@@ -85,7 +86,7 @@ namespace cfood {
     const size_t max_idle_;
     size_t active_obj_num_;
     boost::shared_ptr<FactoryType> factory_;
-    std::vector<ObjType*> objects_;
+    ObjContainer objects_;
     boost::mutex mutex_;
   };
 
