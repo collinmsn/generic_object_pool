@@ -44,7 +44,7 @@ namespace cfood {
 		    const size_t max_idle = -1,
 		    const size_t max_active = -1)
     : factory_(factory), max_idle_(max_idle), max_active_(max_active), active_obj_num_(0) {
-      BOOST_STATIC_ASSERT_MSG((boost::is_base_of<PoolableObject<ObjType>, ObjType>::value), 
+      BOOST_STATIC_ASSERT_MSG((boost::is_base_of<PoolableObject, ObjType>::value), 
 			      "Object type must be derived class of PoolObject");
       if (!factory_) {
 	factory_.reset(new FactoryType());
@@ -56,22 +56,24 @@ namespace cfood {
       }
     }
     boost::shared_ptr<ObjType> get_object() {
+      ObjType* obj = NULL;
       boost::shared_ptr<PoolType> self(this->shared_from_this());
       boost::lock_guard<boost::mutex> lock(mutex_);
       if (!objects_.empty()) {
-	ObjType* obj = objects_.front();
+	obj = objects_.front();
 	objects_.pop_front();
-	return boost::shared_ptr<ObjType>(obj, Deleter(self));
-      }
-      if (active_obj_num_ >= max_active_) {
-	return boost::shared_ptr<ObjType>();
-      }
-      ObjType* obj = factory_->create_object();
-      if (!obj) {
-	return boost::shared_ptr<ObjType>();
+      } else {
+	if (active_obj_num_ < max_active_) {
+	  obj = factory_->create_object();
+	  if (obj) {
+	    ++active_obj_num_;
+	  }
+	}
       }
 
-      ++active_obj_num_;
+      if (obj) {
+	factory_->activate_object(obj);
+      }
       return boost::shared_ptr<ObjType>(obj, Deleter(self));
     }
     
@@ -81,6 +83,7 @@ namespace cfood {
   private:
     void return_object(ObjType* obj) {
       if (!obj) return;
+      factory_->passivate_object(obj);
 
       boost::lock_guard<boost::mutex> lock(mutex_);
       if (!obj->reusable() || objects_.size() >= max_idle_) {
@@ -99,5 +102,5 @@ namespace cfood {
     boost::mutex mutex_;
   };
 
-  }
+}
 #endif

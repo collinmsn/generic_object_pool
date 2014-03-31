@@ -1,6 +1,6 @@
 #include "cfood/generic_object_pool.h"
 
-class SomeObject : public cfood::PoolableObject<SomeObject> {
+class SomeObject : public cfood::PoolableObject {
 public:
   SomeObject() {
     LOG(INFO) << "SomeObject::SomeObject()";

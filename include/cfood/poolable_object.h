@@ -2,7 +2,6 @@
 #define _CFOOD_POOLABLE_OBJECT_H_
 
 namespace cfood {
-template <typename T>
 class PoolableObject {
 public:
 PoolableObject() : reusable_(true) {
