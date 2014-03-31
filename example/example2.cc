@@ -19,14 +19,14 @@ public:
   SpecialObjFactory(const size_t buf_size) : buf_size_(buf_size) {                                                              
   }                                                                                                                                 
   SpecialObj* create_object() {                                                                                                 
-    LOG(INFO) << "PoolableObjectFactory<ObjFromFactory>::create_object()";                                                          
+    LOG(INFO) << "PoolableObjectFactory<SpecialObj>::create_object()";                                                          
     void* buf = malloc(buf_size_);                                                                                                  
     SpecialObj* obj = new SpecialObj();                                                                                     
     obj->from_other_ = buf;                                                                                                         
     return obj;                                                                                                                     
   } 
   void destroy_object(SpecialObj* obj) {                                                                                        
-    LOG(INFO) << "PoolableObjectFactory<ObjFromFactory>::destroy_object()";                                                         
+    LOG(INFO) << "PoolableObjectFactory<SpecialObj>::destroy_object()";                                                         
     free(obj->from_other_);                                                                                                         
     delete obj;                                                                                                                     
   } 
