@@ -13,7 +13,7 @@ Getting started:
 首先定义你想pool的object
 
 ```cpp
-class SomeObject : public cfood::PoolableObject<SomeObject> {
+class SomeObject : public cfood::PoolableObject {
 };
 ```
 然后你构造一个object pool
@@ -38,29 +38,34 @@ boost::shared_ptr<PoolType> pool(new PoolType());
 
 你可能需要设置这个pool中最多保留多少idle object, GenericObjectPool的max_idle就是控制它的，默认这个参数是-1，表示没有限制。如果你还想控制同时存在的object数，那max_active就是干这个的。
 
-PoolableObjectFactory用来创建和销毁池中的对象，它没有提供虚函数供override，你需要使用模板特化来处理特定对象的创建和销毁方式，例如
+PoolableObjectFactory用来创建和销毁池中的对象，如果它的默认实现不能满足你的需要，你可以override相关方法，例如
 
 ```cpp
-namespace cfood {                                                                                                                 
-  template <>          
-  class PoolableObjectFactory<ObjFromFactory> {             
-  public:                                                                                                           
-    PoolableObjectFactory() {}                                                                                      
-    PoolableObjectFactory(const size_t buf_size) {                                                              
-    }                                                                                                                                 
-    ObjFromFactory* create_object() {                                                                                                                                                                                                    
-    }                                                                                                                                 
-    void destroy_object(ObjFromFactory* obj) {                                                                                                                                                                                           
-    }    
-};
-
-}
+class SpecialObjFactory : public cfood::PoolableObjectFactory<SpecialObj> {                                                           
+public:                                                                                                                               
+  SpecialObjFactory(const size_t buf_size) : buf_size_(buf_size) {                                                                    
+  }                                                                                                                                   
+  SpecialObj* create_object() {                                                                                                       
+    LOG(INFO) << "PoolableObjectFactory<ObjFromFactory>::create_object()";                                                            
+    void* buf = malloc(buf_size_);                                                                                                    
+    SpecialObj* obj = new SpecialObj();                                                                                               
+    obj->from_other_ = buf;                                                                                                           
+    return obj;                                                                                                                       
+  }                                                                                                                                   
+  void destroy_object(SpecialObj* obj) {                                                                                              
+    LOG(INFO) << "PoolableObjectFactory<ObjFromFactory>::destroy_object()";                                                           
+    free(obj->from_other_);                                                                                                           
+    delete obj;                                                                                                                       
+  }                                                                                                                                   
+private:                                                                                                                              
+  size_t buf_size_;                                                                                                                   
+};      
 ```
 
 然后这样使用
 ```cpp
-typedef cfood::PoolableObjectFactory<ObjFromFactory> FactoryType;
-typedef cfood::GenericObjectPool<SomeObject> PoolType;
+typedef SpecialObjFactory FactoryType;
+typedef cfood::GenericObjectPool<SpecialObj> PoolType;
 boost::shared_ptr<FactoryType> factory(new FactoryType(128));
 const size_t max_idle = 10;
 boost::shared_ptr<PoolType> pool(new PoolType(factory, max_idle));
