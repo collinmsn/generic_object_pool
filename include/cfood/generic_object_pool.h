@@ -43,7 +43,8 @@ namespace cfood {
   GenericObjectPool(boost::shared_ptr<FactoryType> factory = boost::shared_ptr<FactoryType>(), 
 		    const size_t max_idle = -1,
 		    const size_t max_active = -1)
-    : factory_(factory), max_idle_(max_idle), max_active_(max_active), active_obj_num_(0) {
+    : factory_(factory), max_idle_(max_idle), max_active_(max_active), 
+      active_obj_num_(0), idle_obj_num_(0) {
       BOOST_STATIC_ASSERT_MSG((boost::is_base_of<PoolableObject, ObjType>::value), 
 			      "Object type must be derived class of PoolObject");
       if (!factory_) {
@@ -59,9 +60,10 @@ namespace cfood {
       ObjType* obj = NULL;
       boost::shared_ptr<PoolType> self(this->shared_from_this());
       boost::lock_guard<boost::mutex> lock(mutex_);
-      if (!objects_.empty()) {
+      if (idle_obj_num_ > 0) {
 	obj = objects_.front();
 	objects_.pop_front();
+	--idle_obj_num_;
       } else {
 	if (active_obj_num_ < max_active_) {
 	  obj = factory_->create_object();
@@ -86,18 +88,20 @@ namespace cfood {
       factory_->passivate_object(obj);
 
       boost::lock_guard<boost::mutex> lock(mutex_);
-      if (!obj->reusable() || objects_.size() >= max_idle_) {
+      if (!obj->reusable() || idle_obj_num_ >= max_idle_) {
 	factory_->destroy_object(obj);
 	--active_obj_num_;
 	return;
       }
       objects_.push_back(obj);
+      ++idle_obj_num_;
     }
   private:
     boost::shared_ptr<FactoryType> factory_;
     const size_t max_idle_;
     const size_t max_active_;
-    size_t active_obj_num_;
+    volatile size_t active_obj_num_;
+    volatile size_t idle_obj_num_;
     ObjContainer objects_;
     boost::mutex mutex_;
   };
