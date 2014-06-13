@@ -23,6 +23,7 @@ namespace cfood {
      * called everty time the object is get from the pool
      */
     virtual void activate_object(PoolableObject* obj) {
+      obj->inc_reuse_count();
     }
   };
 

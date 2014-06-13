@@ -75,6 +75,7 @@ namespace cfood {
 
       if (obj) {
 	factory_->activate_object(obj);
+	DLOG(INFO) << "obj reuse count: " << obj->reuse_count();
       }
       return boost::shared_ptr<ObjType>(obj, Deleter(self));
     }
